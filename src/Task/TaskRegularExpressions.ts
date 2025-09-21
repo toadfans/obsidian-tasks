@@ -1,6 +1,6 @@
 export class TaskRegularExpressions {
-    public static readonly dateFormat = 'YYYY-MM-DD';
-    public static readonly dateTimeFormat = 'YYYY-MM-DD HH:mm';
+    public static readonly dateFormat = 'YYYY-MM-DDTHH:mm:ss.SSS[Z]';
+    public static readonly dateTimeFormat = 'YYYY-MM-DDTHH:mm:ss.SSS[Z]';
 
     // Matches indentation before a list marker (including > for potentially nested blockquotes or Obsidian callouts)
     public static readonly indentationRegex = /^([\s\t>]*)/;
