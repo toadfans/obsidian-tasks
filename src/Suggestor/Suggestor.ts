@@ -80,6 +80,9 @@ export function makeDefaultSuggestionBuilder(
         // add date suggestions if relevant
         suggestions = suggestions.concat(addDatesSuggestions(datePrefixRegex, maxGenericSuggestions, parameters));
 
+        const estimatedSymbol = dataviewMode ? 'estimated::' : 'estimated';
+        suggestions = suggestions.concat(addEstimatedSuggestions(estimatedSymbol, parameters));
+
         // add recurrence suggestions if relevant
         suggestions = suggestions.concat(addRecurrenceValueSuggestions(symbols.recurrenceSymbol, parameters));
 
@@ -148,6 +151,9 @@ function addTaskPropertySuggestions(
 
     // NEW_TASK_FIELD_EDIT_REQUIRED
     const line = parameters.line;
+
+    const estimatedSymbol = parameters.dataviewMode ? 'estimated::' : 'estimated';
+    addField(genericSuggestions, line, estimatedSymbol, 'estimated time');
 
     addField(genericSuggestions, line, symbols.dueDateSymbol, 'due date');
     addField(genericSuggestions, line, symbols.startDateSymbol, 'start date');
@@ -413,6 +419,35 @@ function addRecurrenceValueSuggestions(recurrenceSymbol: string, parameters: Sug
             return { displayText, appendText };
         };
         constructSuggestions(parameters, recurrenceMatch, genericMatches, extractor, results);
+    }
+
+    return results;
+}
+
+function addEstimatedSuggestions(symbol: string, parameters: SuggestorParameters) {
+    const genericSuggestions = ['25m', '50m', '1h', '10m', '15m', '20m', '30m', '1h 30m', '2h', '1d'];
+
+    const results: SuggestInfo[] = [];
+    // Build a safe regex: treat the full symbol literally (including :: if present)
+    const escapedSymbol = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // note: ':' not escaped – it's literal
+    const estimatedRegex = new RegExp(`(${escapedSymbol})\\s*([0-9a-zA-Z ]*)`, 'ug');
+    const estimatedMatch = matchIfCursorInRegex(estimatedRegex, parameters);
+    if (estimatedMatch && estimatedMatch.length >= 2) {
+        const estimatedString = estimatedMatch[2];
+        if (estimatedString.length < parameters.settings.autoSuggestMinMatch) return [];
+
+        const maxGenericSuggestions = parameters.settings.autoSuggestMaxItems / 2;
+        let genericMatches = filterGenericSuggestions(genericSuggestions, estimatedString, maxGenericSuggestions, true);
+        if (genericMatches.length === 0 && estimatedString.trim().length === 0) {
+            genericMatches = genericSuggestions.slice(0, maxGenericSuggestions);
+        }
+
+        const extractor = (estimatedPrefix: string, match: string) => {
+            const displayText = `${match}`;
+            const appendText = `${estimatedPrefix} ${match}`;
+            return { displayText, appendText };
+        };
+        constructSuggestions(parameters, estimatedMatch, genericMatches, extractor, results);
     }
 
     return results;
